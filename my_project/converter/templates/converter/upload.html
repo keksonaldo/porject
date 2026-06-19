@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Конвертер фото в WebP</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f6f7fb;
+            --panel: #ffffff;
+            --text: #172033;
+            --muted: #667085;
+            --line: #d9deea;
+            --accent: #2358d8;
+            --accent-dark: #1b45aa;
+            --error: #b42318;
+            --success-bg: #eef7f0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.5;
+        }
+
+        main {
+            width: min(920px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 56px 0;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .intro,
+        .panel,
+        .result {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .intro {
+            padding: 32px;
+        }
+
+        h1,
+        h2,
+        p {
+            margin-top: 0;
+        }
+
+        h1 {
+            max-width: 620px;
+            margin-bottom: 14px;
+            font-size: clamp(2rem, 5vw, 3.8rem);
+            line-height: 1;
+        }
+
+        h2 {
+            margin-bottom: 18px;
+            font-size: 1.25rem;
+        }
+
+        .lead {
+            max-width: 560px;
+            margin-bottom: 0;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .panel {
+            padding: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .helptext {
+            display: block;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 14px;
+            border: 1px dashed var(--line);
+            border-radius: 8px;
+            background: #fbfcff;
+        }
+
+        button,
+        .download {
+            display: inline-flex;
+            min-height: 44px;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #ffffff;
+            font: inherit;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 18px;
+        }
+
+        button:hover,
+        .download:hover {
+            background: var(--accent-dark);
+        }
+
+        .errorlist {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: var(--error);
+        }
+
+        .result {
+            grid-column: 1 / -1;
+            padding: 24px;
+            background: var(--success-bg);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin: 0 0 20px;
+        }
+
+        .metric {
+            padding: 16px;
+            border: 1px solid #cfe3d2;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.76);
+        }
+
+        .metric dt {
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        .metric dd {
+            margin: 0;
+            overflow-wrap: anywhere;
+            font-weight: 800;
+        }
+
+        .download {
+            width: fit-content;
+            padding: 0 18px;
+        }
+
+        @media (max-width: 760px) {
+            main {
+                padding: 28px 0;
+            }
+
+            .shell,
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .intro,
+            .panel,
+            .result {
+                padding: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <div class="shell">
+        <section class="intro" aria-labelledby="page-title">
+            <h1 id="page-title">Конвертер фото в WebP</h1>
+            <p class="lead">Загрузите одну фотографию. Сервис определит тип файла, покажет исходный вес и сохранит сжатую WebP-версию.</p>
+        </section>
+
+        <section class="panel" aria-labelledby="upload-title">
+            <h2 id="upload-title">Загрузка</h2>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.image.label_tag }}
+                {{ form.image }}
+                {% if form.image.help_text %}
+                    <span class="helptext">{{ form.image.help_text }}</span>
+                {% endif %}
+                {{ form.image.errors }}
+                <button type="submit">Конвертировать</button>
+            </form>
+        </section>
+
+        {% if result %}
+            <section class="result" aria-labelledby="result-title">
+                <h2 id="result-title">Готово: {{ result.output_name }}</h2>
+                <dl class="metrics">
+                    <div class="metric">
+                        <dt>Тип файла</dt>
+                        <dd>{{ result.detected_format }} / {{ result.original_mime_type }}</dd>
+                    </div>
+                    <div class="metric">
+                        <dt>Исходный вес</dt>
+                        <dd>{{ result.original_size_label }}</dd>
+                    </div>
+                    <div class="metric">
+                        <dt>Вес WebP</dt>
+                        <dd>{{ result.output_size_label }}</dd>
+                    </div>
+                    <div class="metric">
+                        <dt>Экономия</dt>
+                        <dd>{{ result.savings_percent }}%</dd>
+                    </div>
+                </dl>
+                <a class="download" href="{{ result.output_url }}" download>Скачать WebP</a>
+            </section>
+        {% endif %}
+    </div>
+</main>
+</body>
+</html>
